@@ -1,4 +1,4 @@
-import { Task, ITaskDocument, ITask } from '../../models/Task';
+import { Task, ITaskDocument, ITask } from '../models/Task';
 
 export class TaskRepository {
   // Create a task
