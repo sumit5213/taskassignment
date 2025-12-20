@@ -4,7 +4,7 @@ import { LayoutDashboard, CheckSquare, Clock, PlusCircle, LogOut } from 'lucide-
 
 interface Props {
   children: React.ReactNode;
-}
+} 
 
 const DashboardLayout = ({ children }: Props) => {
   const { user, logout } = useAuth();

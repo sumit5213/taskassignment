@@ -5,7 +5,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import TaskCard from '../components/tasks/TaskCard';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import { useSocket } from '../hooks/useSocket';
-import { Filter, SortAsc } from 'lucide-react';
+// import { Filter, SortAsc } from 'lucide-react';
 
 const Dashboard = () => {
   useSocket(); 
