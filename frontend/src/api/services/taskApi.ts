@@ -6,7 +6,6 @@ export const taskApi = {
     return data;
   },
   
-  // Fixed: Using PATCH for updates and passing body correctly
   updateTask: async (taskId: string, updateData: any) => {
     const { data } = await API.patch(`/tasks/${taskId}`, updateData);
     return data;

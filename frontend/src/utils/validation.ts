@@ -16,6 +16,7 @@ export const taskSchema = z.object({
   description: z.string().min(1, "Description is required"),
   dueDate: z.string().min(1, "Due date is required"),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']),
+  // FIX: Remove .default() and .optional(). Keep it a strict Enum.
   status: z.enum(['To Do', 'In Progress', 'Review', 'Completed']),
   assignedToId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Please select a user"),
 });

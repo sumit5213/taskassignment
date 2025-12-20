@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import { Toaster } from 'react-hot-toast';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -20,6 +21,7 @@ function App() {
   return (
     <AuthProvider>
       <div data-theme="halloween" className="min-h-screen">
+        <Toaster position="top-right" reverseOrder={false} />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />

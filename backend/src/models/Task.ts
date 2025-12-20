@@ -23,6 +23,7 @@ export interface ITask {
   status: TaskStatus;
   creatorId: Types.ObjectId;
   assignedToId: Types.ObjectId;
+  lastEditedBy?: Types.ObjectId; 
 }
 
 export interface ITaskDocument extends ITask, Document {
@@ -30,20 +31,20 @@ export interface ITaskDocument extends ITask, Document {
   updatedAt: Date;
 }
 
-
 export const CreateTaskDto = z.object({
-  title: z.string().min(1).max(100, "Title cannot exceed 100 characters"),
+  title: z.string().min(1, "Title is required").max(100, "Title cannot exceed 100 characters"),
   description: z.string().min(1, "Description is required"),
   dueDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format",
   }),
   priority: z.nativeEnum(TaskPriority),
-  status: z.nativeEnum(TaskStatus),
+  status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   assignedToId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid User ID format"),
 });
 
-export const UpdateTaskDto = CreateTaskDto.partial();
-
+export const UpdateTaskDto = CreateTaskDto.partial().extend({
+  lastEditedBy: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid User ID format").optional(),
+});
 
 const taskSchema = new Schema<ITaskDocument>({
   title: { 
@@ -79,9 +80,21 @@ const taskSchema = new Schema<ITaskDocument>({
     type: Schema.Types.ObjectId, 
     ref: 'User', 
     required: true 
-  }
-}, { timestamps: true });
+  },
+  lastEditedBy: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'User',
+    default: null
+  },
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
-taskSchema.index({ creatorId: 1, assignedToId: 1, status: 1 });
+taskSchema.index({ creatorId: 1 });
+taskSchema.index({ assignedToId: 1 });
+taskSchema.index({ status: 1 });
+taskSchema.index({ dueDate: 1 });
 
 export const Task = model<ITaskDocument>('Task', taskSchema);

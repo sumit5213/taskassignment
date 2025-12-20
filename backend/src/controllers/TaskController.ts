@@ -1,46 +1,88 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { TaskService } from '../services/TaskService';
+import { CreateTaskDto, UpdateTaskDto } from '../models/Task';
+import { AuthRequest } from '../middleware/authMiddleware';
+import { io } from '../server'; 
+
+const taskService = new TaskService();
 
 export class TaskController {
-  private taskService = new TaskService();
-
-  createTask = async (req: any, res: Response) => {
+  async createTask(req: AuthRequest, res: Response) {
     try {
-      // Use req.user.id from protect middleware for creatorId
-      const taskData = { ...req.body, creatorId: req.user.id };
-      const task = await this.taskService.createTask(taskData);
+      const validatedData = CreateTaskDto.parse(req.body);
+      
+      const task = await taskService.createTask({
+        ...validatedData,
+        creatorId: req.user?.id as any,
+        dueDate: new Date(validatedData.dueDate),
+        assignedToId: validatedData.assignedToId as any
+      });
+      
+      io.emit('task_updated'); 
+      
+      io.to(validatedData.assignedToId).emit('notification', {
+        message: `You have been assigned a new task: ${task.title}`
+      });
+
       res.status(201).json(task);
+    } catch (error: any) { 
+      res.status(400).json({ message: error.errors || error.message });
+    }
+  }
+
+async updateTask(req: AuthRequest, res: Response) {
+    try {
+      const taskId = req.params.id;
+      const validatedData = UpdateTaskDto.parse(req.body);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const task = await taskService.updateTask(
+        taskId, 
+        validatedData, 
+        currentUserId
+      );
+
+      io.emit('task_updated'); 
+      
+      res.status(200).json(task);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
-  };
+  }
 
-  getDashboard = async (req: any, res: Response) => {
+  async getTasks(req: AuthRequest, res: Response) {
     try {
-      const userId = req.user.id;
-      const tasks = await this.taskService.getAllTasks();
-
-      const dashboard = {
-        // Tasks specifically assigned to the user
-        assigned: tasks.filter(t => t.assignedToId?._id.toString() === userId),
-        // Tasks specifically created by the user
-        created: tasks.filter(t => t.creatorId?.toString() === userId),
-        // Tasks where dueDate is in the past and status isn't Completed
-        overdue: tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'Completed')
-      };
-
-      res.json(dashboard);
+      const tasks = await taskService.getAllTasks(req.query);
+      res.status(200).json(tasks);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
-  };
+  }
 
-  updateTask = async (req: Request, res: Response) => {
+  async getDashboard(req: AuthRequest, res: Response) {
     try {
-      const task = await this.taskService.updateTask(req.params.id, req.body);
-      res.json(task);
+      if (!req.user?.id) return res.status(401).json({ message: "Unauthorized" });
+      
+      const data = await taskService.getDashboardData(req.user.id);
+      res.status(200).json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async deleteTask(req: AuthRequest, res: Response) {
+    try {
+      await taskService.deleteTask(req.params.id);
+      
+      io.emit('task_updated'); 
+      
+      res.status(204).send();
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
-  };
+  }
 }

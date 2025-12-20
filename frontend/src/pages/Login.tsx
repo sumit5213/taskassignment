@@ -10,7 +10,7 @@ const Login = () => {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+  const { register, handleSubmit, formState: { } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema)
   });
 

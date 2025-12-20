@@ -15,7 +15,7 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
       
       req.user = { id: decoded.id };
       next();
-    } catch (error) {
+    } catch (error)  {
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }

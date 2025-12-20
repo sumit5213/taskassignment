@@ -1,14 +1,14 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskSchema, type TaskFormValues } from '../../utils/validation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import API from '../../api/axios';
 import { X, Calendar, Flag, User, FileText } from 'lucide-react';
 
-const CreateTaskModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+export const CreateTaskModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const queryClient = useQueryClient();
+  const minDate = new Date().toISOString().slice(0, 16); 
 
-  // Fetch users for the assignment dropdown
   const { data: users } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
@@ -20,74 +20,85 @@ const CreateTaskModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { priority: 'Medium', status: 'To Do' }
+    defaultValues: {
+      title: '',
+      description: '',
+      dueDate: '',
+      priority: 'Medium',
+      status: 'To Do', 
+      assignedToId: ''
+    }
   });
 
   const mutation = useMutation({
     mutationFn: (newTask: TaskFormValues) => API.post('/tasks', newTask),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['global_tasks'] });
       reset();
       onClose();
+    },
+    onError: (err: any) => {
+      console.error("Submission Error:", err.response?.data);
     }
   });
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-      {/* Orange Outer Frame */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm px-4">
       <div className="orange-frame w-full max-w-[500px] relative">
-        <button 
-          onClick={onClose} 
-          className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors"
-        >
-          <X size={24} />
-        </button>
-
         <div className="inner-card">
-          <h2 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors z-50"
+          >
+            <X size={20} />
+          </button>
+
+          <h2 className="text-white text-3xl font-black mb-8 uppercase tracking-tighter flex items-center gap-2">
             <FileText className="text-warning" /> New Task
           </h2>
-
-          <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
-            {/* Title Input */}
+          
+          <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4 text-left">
             <div className="form-control">
-              <label className="label-text text-gray-400 text-xs mb-1 ml-1">Task Title</label>
+              <label className="text-gray-400 text-[10px] font-black mb-2 uppercase tracking-widest">Task Title</label>
               <input 
                 type="text" 
                 placeholder="What needs to be done?" 
-                className="input input-bordered w-full" 
+                className="input input-bordered h-12" 
                 {...register('title')} 
               />
-              {errors.title && <p className="text-error text-[10px] mt-1">{errors.title.message}</p>}
+              {errors.title && <span className="text-error text-[10px] mt-1 font-bold">{errors.title.message}</span>}
             </div>
 
-            {/* Description Input */}
             <div className="form-control">
-              <label className="label-text text-gray-400 text-xs mb-1 ml-1">Description</label>
+              <label className="text-gray-400 text-[10px] font-black mb-2 uppercase tracking-widest">Description</label>
               <textarea 
-                placeholder="Provide some details..." 
-                className="textarea textarea-bordered h-20 bg-[#121212] text-white border-gray-700 focus:border-orange-500" 
-                {...register('description')}
-              ></textarea>
+                placeholder="Provide details..." 
+                className="textarea textarea-bordered h-24" 
+                {...register('description')} 
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Due Date */}
               <div className="form-control">
-                <label className="label-text text-gray-400 text-xs mb-1 ml-1 flex items-center gap-1">
+                <label className="text-gray-400 text-[10px] font-black mb-2 uppercase tracking-widest flex items-center gap-1">
                   <Calendar size={12}/> Due Date
                 </label>
-                <input type="datetime-local" className="input input-bordered text-xs" {...register('dueDate')} />
+                <input 
+                  type="datetime-local" 
+                  min={minDate} 
+                  className="input input-bordered text-xs" 
+                  {...register('dueDate')} 
+                />
               </div>
 
-              {/* Priority Selection */}
               <div className="form-control">
-                <label className="label-text text-gray-400 text-xs mb-1 ml-1 flex items-center gap-1">
+                <label className="text-gray-400 text-[10px] font-black mb-2 uppercase tracking-widest flex items-center gap-1">
                   <Flag size={12}/> Priority
                 </label>
-                <select className="select select-bordered text-xs" {...register('priority')}>
+                <select className="select select-bordered" {...register('priority')}>
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
@@ -96,37 +107,28 @@ const CreateTaskModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
               </div>
             </div>
 
-            {/* Assignee Selection */}
             <div className="form-control">
-              <label className="label-text text-gray-400 text-xs mb-1 ml-1 flex items-center gap-1">
+              <label className="text-gray-400 text-[10px] font-black mb-2 uppercase tracking-widest flex items-center gap-1">
                 <User size={12}/> Assign To
               </label>
               <select className="select select-bordered" {...register('assignedToId')}>
-                <option value="">Select a team member</option>
+                <option value="">Select Member</option>
                 {users?.map((u: any) => (
                   <option key={u._id} value={u._id}>{u.name}</option>
                 ))}
               </select>
-              {errors.assignedToId && <p className="text-error text-[10px] mt-1">{errors.assignedToId.message}</p>}
+              {errors.assignedToId && <span className="text-error text-[10px] mt-1 font-bold">{errors.assignedToId.message}</span>}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <button 
-                type="button" 
-                onClick={onClose} 
-                className="btn btn-ghost text-gray-500 hover:text-white px-6"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={mutation.isPending} 
-                className="btn-primary-orange"
-              >
-                {mutation.isPending ? 'Saving...' : 'Create Task'}
-              </button>
-            </div>
+            <input type="hidden" {...register('status')} />
+
+            <button 
+              type="submit" 
+              className="btn-primary-orange w-full h-12 mt-4 uppercase text-sm tracking-widest"
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? 'Saving...' : 'Confirm & Create'}
+            </button>
           </form>
         </div>
       </div>
